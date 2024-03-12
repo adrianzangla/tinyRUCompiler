@@ -1,10 +1,10 @@
 # Proyecto Compilador tinyRU
 
 <center>
+
+![logo-UNCuyo](https://github.com/adrianzangla/tinyRUCompiler/assets/88344776/a7321d98-a010-4bb1-ab36-c4f8c0cd7f75)
   
 ![logo-facultad-de-ingenieria](https://github.com/adrianzangla/tinyRUCompiler/assets/88344776/82cf1238-3fb7-4bf8-ba0b-b5aee2e30e5d)
-
-![logo-facultad-de-ingenieria](https://github.com/adrianzangla/tinyRUCompiler/assets/88344776/e5b73e09-e96c-4aa4-a7ea-88e3f470ce73)
 
 Licenciatura en Ciencias de la Computación
 
