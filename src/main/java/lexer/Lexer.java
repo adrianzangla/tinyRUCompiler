@@ -1,252 +1,359 @@
 package lexer;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.util.Hashtable;
+import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 public class Lexer {
-    private final BufferedReader source;
-    int line = 0;
-    int column = 0;
-    char current;
-    Hashtable<String, Word> words = new Hashtable<>();
+    private final PushbackReader source;
+    private char current;
+    private int line;
+    private int column;
+    private Token token;
+    private final Map<String, Type> reserved;
+    private final int TAB_SIZE = 4;
 
-    void reserve(Word w) {
-        words.put(w.getLexeme(), w);
+    public Lexer(String source) throws FileNotFoundException {
+        this.source = new PushbackReader(new FileReader(source));
+        reserved = new HashMap<String, Type>();
+        reserved.put("struct", Type.STRUCT);
+        reserved.put("impl", Type.IMPL);
+        reserved.put("start", Type.START);
+        reserved.put("if", Type.IF);
+        reserved.put("else", Type.ELSE);
+        reserved.put("fn", Type.FN);
+        reserved.put("ret", Type.RET);
+        reserved.put("st", Type.SCOPE);
+        reserved.put("priv", Type.SCOPE);
+        reserved.put("new", Type.NEW);
+        reserved.put("self", Type.STRUCT_ID);
+        reserved.put("true", Type.BOOL_LITERAL);
+        reserved.put("false", Type.BOOL_LITERAL);
+        reserved.put("void", Type.TYPE);
+        reserved.put("Int", Type.TYPE);
+        reserved.put("Str", Type.TYPE);
+        reserved.put("Char", Type.TYPE);
+        reserved.put("Bool", Type.TYPE);
+        reserved.put("nil", Type.NIL);
+        reserved.put("Array", Type.ARRAY);
     }
 
-    public Lexer(BufferedReader source) {
-        reserve(new Word("struct", Tag.STRUCT));
-        reserve(new Word("impl", Tag.IMPL));
-        reserve(new Word("start", Tag.START));
-        reserve(new Word("pri", Tag.PRIV));
-        reserve(new Word("st", Tag.ST));
-        reserve(new Word("Int", Tag.BASIC));
-        reserve(new Word("void", Tag.BASIC));
-        reserve(new Word("Str", Tag.BASIC));
-        reserve(new Word("Bool", Tag.BASIC));
-        reserve(new Word("Char", Tag.BASIC));
-        reserve(new Word("self", Tag.SELF));
-        reserve(new Word("new", Tag.NEW));
-        reserve(new Word("if", Tag.IF));
-        reserve(new Word("else", Tag.ELSE));
-        reserve(new Word("while", Tag.WHILE));
-        reserve(new Word("ret", Tag.RET));
-        reserve(new Word("true", Tag.TRUE));
-        reserve(new Word("false", Tag.FALSE));
-        reserve(new Word("nil", Tag.NIL));
-        reserve(new Word("Object", Tag.ID));
-        reserve(new Word("IO", Tag.ID));
-        reserve(new Word("Array", Tag.ARRAY));
-        reserve(new Word("fn", Tag.FN));
-        this.source = source;
+    private void state() {
+        switch (current) {
+            case '\t':
+                column += TAB_SIZE;
+                break;
+            case '\r':
+                column = 0;
+                break;
+            case '\n':
+                line++;
+                column = 0;
+                break;
+            case '\u000B':
+                line++;
+                break;
+            default:
+                column++;
+                break;
+        }
     }
 
-    void read() throws IOException {
+    private void read() throws IOException {
         current = (char) source.read();
-        if (current == '\n' || current == '\r' || current == '\013') {
-            line++;
-            column = 0;
-        } else if (current == '\t') column = column + 8;
-        else column++;
     }
 
-    char peek() throws IOException {
-        source.mark(1);
-        char peeked = (char) source.read();
-        source.reset();
-        return peeked;
+    private void unread() throws IOException {
+        source.unread(current);
     }
 
-    boolean peek(char c) throws IOException {
-        return c == peek();
+    private void tokenize() {
+        token.append(current);
+        state();
     }
 
-    boolean validIdentifier(char c) {
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_';
-    }
-
-    public Token scan() throws LexerException, IOException {
-        do {
+    public Token scan() throws IOException, LexerException {
+        while (true) {
             read();
-            if (Character.isLetter(current)) {
-                boolean valid = validIdentifier(current);
-                StringBuilder buffer = new StringBuilder();
-                int startLine = line;
-                int startColumn = column;
-                buffer.append(current);
-                char peeked = peek();
-                while (Character.isLetterOrDigit(peeked) || peeked == '_') {
-                    read();
-                    buffer.append(current);
-                    peeked = peek();
-                    if (valid) valid = validIdentifier(current);
-                }
-                String lexeme = buffer.toString();
-                char lastChar = buffer.charAt(buffer.length() - 1);
-                if (lastChar == '_' || (lastChar >= '0' && lastChar <= '9') || !valid)
-                    throw new LexerException(new Token(lexeme, Tag.BAD_TOKEN, startLine, startColumn), "IDENTIFICADOR NO VALIDO " + lexeme);
-                else {
-                    Word word = words.get(lexeme);
-                    if (word == null) {
-                        word = new Word(lexeme, Tag.ID);
-                        words.put(word.getLexeme(), word);
-                    }
-                    return new Token(word, startLine, startColumn);
-                }
-            }
-            if (Character.isDigit(current)) {
-                char peeked = peek();
-                boolean valid = current != '0' || !Character.isDigit(peeked);
-                StringBuilder buffer = new StringBuilder();
-                int startLine = line;
-                int startColumn = column;
-                buffer.append(current);
-                while (Character.isDigit(peeked)) {
-                    read();
-                    buffer.append(current);
-                    peeked = peek();
-                }
-                String lexeme = buffer.toString();
-                Token token = new Token(lexeme, Tag.INT, startLine, startColumn);
-                if (valid) return token;
-                else throw new LexerException(token, "LITERAL ENTERO NO VALIDO " + lexeme);
-            }
-            StringBuilder buffer;
-            int startLine;
-            int startColumn;
-            char peeked;
+            token = new Token(line, column);
+            tokenize();
+            if (Character.isWhitespace(current) || Character.isISOControl(current)) continue;
             switch (current) {
-                case '\uffff':
-                    return new Token("\0", Tag.EOF, line, column);
-                case '/':
-                    if (peek('?')) {
-                        read();
-                        peeked = peek();
-                        while (peeked != '\n' && peeked != '\r' && peeked != '\013') {
-                            read();
-                            peeked = peek();
-                        }
-                        continue;
-                    } else return new Token("/", Tag.DIV, line, column);
-                case '=':
-                    if (peek('=')) {
-                        read();
-                        return new Token("==", Tag.EQ, line, column - 1);
-                    } else return new Token("=", Tag.ASSIGNMENT, line, column);
-                case '!':
-                    if (peek('=')) {
-                        read();
-                        return new Token("!=", Tag.NE, line, column - 1);
-                    } else return new Token("!", Tag.NOT, line, column);
-                case '<':
-                    if (peek('=')) {
-                        read();
-                        return new Token("<=", Tag.LE, line, column - 1);
-                    } else return new Token("<", Tag.LT, line, column);
-                case '>':
-                    if (peek('=')) {
-                        read();
-                        return new Token(">=", Tag.GE, line, column - 1);
-                    } else return new Token(">", Tag.GT, line, column);
-                case '+':
-                    if (peek('+')) {
-                        read();
-                        return new Token("++", Tag.INCR, line, column - 1);
-                    } else return new Token("+", Tag.PLUS, line, column);
-                case '-':
-                    if (peek('-')) {
-                        read();
-                        return new Token("--", Tag.DECR, line, column - 1);
-                    } else if (peek('>')) {
-                        read();
-                        return new Token("->", Tag.RET_TYPE, line, column - 1);
-                    } else return new Token("-", Tag.MINUS, line, column);
-                case '*':
-                    return new Token("*", Tag.MULT, line, column);
-                case '%':
-                    return new Token("%", Tag.MOD, line, column);
-                case '&':
-                    if (peek('&')) {
-                        read();
-                        return new Token("&", Tag.AND, line, column - 1);
-                    } else
-                        throw new LexerException(new Token("&", Tag.BAD_TOKEN, line, column), "IDENTIFICADOR NO VALIDO");
-                case '|':
-                    if (peek('|')) {
-                        read();
-                        return new Token("|", Tag.OR, line, column - 1);
-                    } else
-                        throw new LexerException(new Token("|", Tag.BAD_TOKEN, line, column), "IDENTIFICADOR NO VALIDO");
                 case '.':
-                    return new Token(".", Tag.CONSTR, line, column);
+                    token.setType(Type.DOT);
+                    break;
+                case ':':
+                    token.setType(Type.COLON);
+                    break;
                 case ',':
-                    return new Token(",", Tag.COMMA, line, column);
+                    token.setType(Type.COMMA);
+                    break;
                 case ';':
-                    return new Token(";", Tag.SC, line, column);
-                case ' ':
-                case '\n':
-                case '\t':
-                case '\r':
-                case '\013':
-                    continue;
+                    token.setType(Type.SEMICOLON);
+                    break;
                 case '(':
-                    return new Token("(", Tag.OP, line, column);
+                    token.setType(Type.OPEN_PARENTHESIS);
+                    break;
                 case ')':
-                    return new Token(")", Tag.CP, line, column);
+                    token.setType(Type.CLOSE_PARENTHESIS);
+                    break;
                 case '[':
-                    return new Token("[", Tag.OB, line, column);
+                    token.setType(Type.OPEN_SQUARE_BRACKET);
+                    break;
                 case ']':
-                    return new Token("]", Tag.CB, line, column);
+                    token.setType(Type.CLOSE_SQUARE_BRACKET);
+                    break;
                 case '{':
-                    return new Token("{", Tag.OC, line, column);
+                    token.setType(Type.OPEN_CURLY_BRACKET);
+                    break;
                 case '}':
-                    return new Token("}", Tag.CC, line, column);
+                    token.setType(Type.CLOSE_CURLY_BRACKET);
+                    break;
+                case '*':
+                    token.setType(Type.MULTIPLICATION);
+                    break;
+                case '%':
+                    token.setType(Type.MODULO);
+                    break;
+                case '\uffff':
+                    throw new EOFException();
+                case '/':
+                    read();
+                    if (current == '?') {
+                        scanComment();
+                        continue;
+                    } else {
+                        unread();
+                        token.setType(Type.DIVISION);
+                        break;
+                    }
+                case '=':
+                    read();
+                    if (current == '=') {
+                        tokenize();
+                        token.setType(Type.EQUALS);
+                    } else {
+                        unread();
+                        token.setType(Type.ASSIGNMENT);
+                    }
+                    break;
+                case '<':
+                    read();
+                    if (current == '=') {
+                        tokenize();
+                        token.setType(Type.LESS_THAN_OR_EQUALS);
+                    } else {
+                        unread();
+                        token.setType(Type.LESS_THAN);
+                    }
+                    break;
+                case '>':
+                    tokenize();
+                    read();
+                    if (current == '=') {
+                        tokenize();
+                        token.setType(Type.GRATER_THAN_OR_EQUALS);
+                    } else {
+                        unread();
+                        token.setType(Type.GREATER_THAN);
+                    }
+                    break;
+                case '!':
+                    tokenize();
+                    read();
+                    if (current == '=') {
+                        tokenize();
+                        token.setType(Type.NOT_EQUALS);
+                    } else {
+                        unread();
+                        token.setType(Type.NOT);
+                    }
+                    break;
+                case '-':
+                    read();
+                    if (current == '>') {
+                        tokenize();
+                        token.setType(Type.RETURN_TYPE);
+                    } else if (current == '-') {
+                        tokenize();
+                        token.setType(Type.DECREMENT);
+                    } else {
+                        unread();
+                        token.setType(Type.MINUS);
+                    }
+                    break;
+                case '+':
+                    tokenize();
+                    read();
+                    if (current == '+') {
+                        tokenize();
+                        token.setType(Type.INCREMENT);
+                    } else {
+                        unread();
+                        token.setType(Type.PLUS);
+                    }
+                    break;
+                case '&':
+                    read();
+                    if (current == '&') {
+                        tokenize();
+                        token.setType(Type.AND);
+                    } else {
+                        unread();
+                        token.setType(Type.BAD_TOKEN);
+                        throw new LexerException(token, "Caracter ilegal");
+                    }
+                    break;
+                case '|':
+                    read();
+                    if (current == '|') {
+                        tokenize();
+                        token.setType(Type.OR);
+                    } else {
+                        unread();
+                        token.setType(Type.BAD_TOKEN);
+                        throw new LexerException(token, "Caracter ilegal");
+                    }
+                    break;
                 case '\'':
-                    buffer = new StringBuilder();
-                    buffer.append(current);
-                    startLine = line;
-                    startColumn = column;
-                    peeked = peek();
-                    while (peeked != '\'' && peeked != '\uffff') {
-                        read();
-                        buffer.append(current);
-                        peeked = peek();
-                    }
-                    if (peeked == '\'') {
-                        read();
-                        buffer.append(current);
-                        String lexeme = buffer.toString();
-                        if (lexeme.length() > 3)
-                            throw new LexerException(new Token(lexeme, Tag.BAD_TOKEN, line, column), "LITERAL NO VALIDO " + lexeme);
-                        else return new Token(lexeme, Tag.CHAR, startLine, startColumn);
-                    } else {
-                        String lexeme = buffer.toString();
-                        throw new LexerException(new Token(lexeme, Tag.BAD_TOKEN, startLine, startColumn), "LITERAL NO VALIDO " + lexeme);
-                    }
+                    scanChar();
+                    token.setType(Type.CHAR_LITERAL);
+                    break;
                 case '"':
-                    buffer = new StringBuilder();
-                    buffer.append(current);
-                    startLine = line;
-                    startColumn = column;
-                    peeked = peek();
-                    while (peeked != '"' && peeked != '\uffff') {
-                        read();
-                        buffer.append(current);
-                        peeked = peek();
-                    }
-                    if (peeked == '"') {
-                        read();
-                        buffer.append(current);
-                        String lexeme = buffer.toString();
-                        return new Token(lexeme, Tag.STR, startLine, startColumn);
-                    } else {
-                        String lexeme = buffer.toString();
-                        throw new LexerException(new Token(lexeme, Tag.BAD_TOKEN, startLine, startColumn), "LITERAL NO VALIDO " + lexeme);
-                    }
+                    scanStr();
+                    token.setType(Type.STR_LITERAL);
+                    break;
                 default:
-                    throw new LexerException(new Token(String.valueOf(current), Tag.BAD_TOKEN, line, column), "IDENTIFICADOR NO VALIDO " + current);
+                    if (rA_Z(current)) {
+                        scanStructId();
+                        token.setType(reserved.getOrDefault(token.getLexeme().toString(), Type.STRUCT_ID));
+                    } else if (ra_z(current)) {
+                        scanMemberID();
+                        token.setType(reserved.getOrDefault(token.getLexeme().toString(), Type.MEMBER_ID));
+                    } else if (current == '0') {
+                        token.setType(Type.INT_LITERAL);
+                    } else if (r0_9(current)) {
+                        scanInt();
+                        token.setType(Type.INT_LITERAL);
+                    } else {
+                        token.setType(Type.BAD_TOKEN);
+                        throw new LexerException(token, "Caracter ilegal");
+                    }
             }
-        } while (true);
+            return token;
+        }
+    }
+
+    public static boolean r0_9(char match) {
+        return match >= '0' && match <= '9';
+    }
+
+
+    private boolean rA_Z(char match) {
+        return match >= 'A' && match <= 'Z';
+    }
+
+    private boolean ra_z(char match) {
+        return match >= 'a' && match <= 'z';
+    }
+
+    private boolean alphabet(char match) {
+        return switch (match) {
+            case '#', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_' ->
+                    true;
+            default -> r0_9(match) || ra_z(match) || rA_Z(match);
+        };
+    }
+
+    private boolean escape(char match) {
+        return switch (match) {
+            case 'b', 'f', 'n', 'r', 't', 'v', '\'', '"', '\\' -> true;
+            default -> false;
+        };
+    }
+
+    private void scanInt() throws IOException {
+        read();
+        while (r0_9(current)) {
+            tokenize();
+            read();
+        }
+        unread();
+    }
+
+    private void scanMemberID() throws IOException {
+        read();
+        while (ra_z(current) || rA_Z(current) || r0_9(current) || current == '_') {
+            tokenize();
+            read();
+        }
+        unread();
+    }
+
+    private void scanStructId() throws IOException, LexerException {
+        scanMemberID();
+        var last = token.getLexeme().charAt(token.getLexeme().length() - 1);
+        if (r0_9(last) || last == '_') {
+            token.setType(Type.BAD_STRUCT_ID);
+            throw new LexerException(token, "Ultimo caracter de ID de Struct ilegal");
+        }
+    }
+
+    private void scanStr() throws IOException, LexerException {
+        read();
+        while (current != '"') {
+            if (current == '\\') {
+                tokenize();
+                read();
+                tokenize();
+                if (!escape(current)) {
+                    token.setType(Type.BAD_STR_LITERAL);
+                    throw new LexerException(token, "Caracter de escape ilegal en literal de Str");
+                }
+            } else if (current == '\uffff' || current == '\n') {
+                token.setType(Type.BAD_CHAR_LITERAL);
+                throw new LexerException(token, "Literal de Str no cerrado");
+            } else if (!alphabet(current)) {
+                tokenize();
+                token.setType(Type.BAD_STR_LITERAL);
+                throw new LexerException(token, "Caracter ilegal en literal de Str");
+            } else tokenize();
+            read();
+        }
+        tokenize();
+    }
+
+    private void scanChar() throws IOException, LexerException {
+        read();
+        if (current == '\\') {
+            tokenize();
+            read();
+            tokenize();
+            if (!escape(current)) {
+                token.setType(Type.BAD_CHAR_LITERAL);
+                throw new LexerException(token, "Caracter de escape ilegal en literal de Char");
+            }
+        } else if (current == '\uffff' || current == '\n') {
+            token.setType(Type.BAD_CHAR_LITERAL);
+            throw new LexerException(token, "Literal de Char no cerrado");
+        } else if (!alphabet(current)) {
+            tokenize();
+            token.setType(Type.BAD_CHAR_LITERAL);
+            throw new LexerException(token, "Caracter ilegal en literal de Char");
+        }
+        read();
+        tokenize();
+        if (current != '\'') {
+            token.setType(Type.BAD_CHAR_LITERAL);
+            throw new LexerException(token, "Literal de Char no cerrado");
+        }
+    }
+
+    private void scanComment() throws IOException {
+        while (current != '\n' && current != '\uffff') {
+            read();
+            state();
+        }
     }
 }

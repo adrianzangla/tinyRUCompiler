@@ -1,19 +1,39 @@
 package lexer;
 
-public class Token extends Word {
-    final int line;
-    final int column;
+public class Token {
+    private final Lexeme lexeme;
+    private int line;
+    private int column;
 
-    public Token(String lexeme, Tag tag, int line, int column) {
-        super(lexeme, tag);
+    public Token(int line, int column) {
+        this.lexeme = new Lexeme();
+        this.line = line;
+        this.column = column;
+    }
+    public Token(String lexeme, int line, int column) {
+        this.lexeme = new Lexeme(lexeme);
         this.line = line;
         this.column = column;
     }
 
-    public Token(Word word, int line, int column) {
-        super(word.getLexeme(), word.getTag());
+    public Token(char lexeme, Type type, int line, int column) {
+        this.lexeme = new Lexeme(lexeme, type);
         this.line = line;
         this.column = column;
+    }
+
+    public Token(char lexeme, int line, int column) {
+        this.lexeme = new Lexeme(lexeme);
+        this.line = line;
+        this.column = column;
+    }
+
+    public String getType() {
+        return lexeme.getType();
+    }
+
+    public StringBuilder getLexeme() {
+        return lexeme.getValue();
     }
 
     public int getLine() {
@@ -22,6 +42,14 @@ public class Token extends Word {
 
     public int getColumn() {
         return column;
+    }
+
+    public void append(char character) {
+        lexeme.getValue().append(character);
+    }
+
+    public void setType(Type type) {
+        lexeme.setType(type);
     }
 
 }

@@ -1,12 +1,9 @@
 package lexer;
 
 public class LexerException extends Throwable {
-
-    private Token token;
-    private String message;
-
-    public LexerException(Token token, String message) {
-        super();
+    Token token;
+    String message;
+    public LexerException (Token token, String message) {
         this.token = token;
         this.message = message;
     }
@@ -15,6 +12,7 @@ public class LexerException extends Throwable {
         return token;
     }
 
+    @Override
     public String getMessage() {
         return message;
     }
