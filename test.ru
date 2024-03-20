@@ -10,7 +10,7 @@ impl Fibonacci {
             if (i == 0) {
                 (imprimo_numero(i));
                 (imprimo_sucesion(suma));
-            } else if(i == 1) {
+            } else if (i == 1) {
                 (imprimo_numero(i));
                 suma = suma + i;
                 (imprimo_sucesion(suma));

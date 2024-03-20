@@ -9,7 +9,7 @@ public class Source {
 
     PushbackReader pr;
     int ln = 1;
-    int cn = 1;
+    int cn = 0;
 
     public Source(String s) throws FileNotFoundException {
         pr = new PushbackReader(new FileReader(s));
@@ -19,7 +19,7 @@ public class Source {
         char c = (char) pr.read();
         if (c == '\n') {
             ln++;
-            cn = 1;
+            cn = 0;
         } else cn++;
         return c;
     }
