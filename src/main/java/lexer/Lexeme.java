@@ -1,35 +1,45 @@
 package lexer;
 
 public class Lexeme {
-    private StringBuilder value;
-    private Type type;
+    private final StringBuilder sb;
+    Type t;
 
     public Lexeme() {
-        value = new StringBuilder();
+        sb = new StringBuilder();
     }
 
-    public Lexeme(char value) {
-        this.value = new StringBuilder(String.valueOf(value));
+    public Lexeme(char c) {
+        sb = new StringBuilder(String.valueOf(c));
     }
 
-    public Lexeme(String value) {
-        this.value = new StringBuilder(value);
+    public Lexeme(char c, Type t) {
+        sb = new StringBuilder(String.valueOf(c));
+        this.t = t;
     }
 
-    public Lexeme(char value, Type type) {
-        this.value = new StringBuilder(String.valueOf(value));
-        this.type = type;
+
+    public Lexeme(String s) {
+        sb = new StringBuilder(s);
     }
 
-    public StringBuilder getValue() {
-        return value;
+    public String getValue() {
+        return sb.toString();
     }
 
-    public void setType(Type type) {
-        this.type = type;
+    public void append(char c) {
+        sb.append(c);
     }
 
-    public String getType() {
-        return type.name();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Lexeme l = (Lexeme) o;
+        return sb.toString().contentEquals(l.sb);
+    }
+
+    @Override
+    public String toString() {
+        return String.format(" %s | %s ", t.name(), sb.toString());
     }
 }

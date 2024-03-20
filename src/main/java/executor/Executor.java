@@ -2,6 +2,7 @@ package executor;
 
 import lexer.Lexer;
 import lexer.LexerException;
+import lexer.Source;
 import lexer.Token;
 
 import java.io.*;
@@ -9,68 +10,68 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class Executor {
-    private Lexer lexer;
-    private String out;
-    private final String CORRECT = "CORRECTO: ANALISIS LEXICO\n";
-    private final String ERROR = "ERROR: LEXICO\n";
-    private final String CORRECTHEADER = "| TOKEN                | LEXEMA                    | NUMERO DE LINEA (NUMERO DE COLUMNA) |\n";
-    private final String ERRORHEADER = "| NUMERO DE LINEA: | NUMERO DE COLUMNA:     | DESCRIPCION: |\n";
-    private final String CORRECTFORMAT = "| %-20s | %-25s | (%-2d, %-2d) |\n";
-    private final String ERRORFORMAT = "| %-17d | %-22d | %-12s |\n";
+    Lexer l;
+    String of;
+    final String CORRECT = "CORRECTO: ANALISIS LEXICO\n";
+    final String CORRECTHEADER = "| TOKEN | LEXEMA | NUMERO DE LINEA (NUMERO DE COLUMNA) |\n";
+    final String ERRORHEADER = "| NUMERO DE LINEA: | NUMERO DE COLUMNA: | DESCRIPCION: |\n";
+    final String ERROR = "ERROR: LEXICO\n";
+    final String ROW = "|%s|\n";
+    List<Token> tl = new LinkedList<>();
 
-    List<Token> tokens = new LinkedList<>();
-
-    public Executor(String source) throws FileNotFoundException {
-        lexer = new Lexer(source);
-        out = source.replace(".ru", ".txt");
+    public Executor(String sf) {
+        Source s = null;
+        try {
+            s = new Source(sf);
+            l = new Lexer(s);
+        } catch (FileNotFoundException e) {
+            System.err.println("No se encontró el archivo");
+        }
+        of = sf.replace(".ru", ".txt");
     }
 
-    public Executor(String source, String out) throws FileNotFoundException {
-        lexer = new Lexer(source);
-        this.out = out;
-    }
-
-    private String stringify(String format, Token token) {
-        return String.format(format, token.getType(), token.getLexeme().toString(), token.getLine(), token.getColumn());
+    public Executor(String sf, String of) throws FileNotFoundException {
+        Source s = new Source(sf);
+        l = new Lexer(s);
+        this.of = of;
     }
 
     public void execute() {
         try {
             while (true) {
-                var token = lexer.scan();
-                System.out.println(stringify(CORRECTFORMAT, token));
-                tokens.add(token);
+                var token = l.scan();
+                tl.add(token);
             }
         } catch (EOFException e) {
             System.out.println(CORRECT);
-            output();
+            log();
         } catch (IOException e) {
-            System.out.println("Error leyendo el archivo del codigo fuente");
+            System.err.println("Error leyendo el archivo del codigo fuente");
         } catch (LexerException e) {
             System.out.println(ERROR);
-            error(e.getToken());
+            log(e);
         }
     }
 
-    private void output() {
-        try (var writer = new BufferedWriter(new FileWriter(out))) {
+    private void log() {
+        try (var writer = new BufferedWriter(new FileWriter(of))) {
+            writer.write(CORRECT);
             writer.write(CORRECTHEADER);
-            for (var token : tokens) {
-                writer.write(stringify(CORRECTFORMAT, token));
+            for (var t : tl) {
+                writer.write(String.format(ROW, t.toString()));
             }
         } catch (IOException e) {
-            System.out.println("Error escribiendo en el archivo " + out);
+            System.err.println("Error escribiendo en el archivo " + of);
         }
     }
 
-    private void error(Token token) {
-        try (var writer = new BufferedWriter(new FileWriter(out))) {
+    private void log(LexerException le) {
+        try (var writer = new BufferedWriter(new FileWriter(of))) {
+            writer.write(ERROR);
             writer.write(ERRORHEADER);
-            writer.write(stringify(ERRORFORMAT, token));
+            writer.write(le.toString());
         } catch (IOException e) {
-            System.out.println("Error escribiendo en el archivo " + out);
+            System.err.println("Error escribiendo en el archivo " + of);
         }
     }
-
-
 }

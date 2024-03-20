@@ -24,7 +24,7 @@ impl Fibonacci {
         }
         ret suma;
     }
-    .(){
+    .() {
         i = 0; /? inicializo i
         j = 0; /? inicializo j
         suma = 0; /? inicializo suma
