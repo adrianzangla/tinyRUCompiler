@@ -4,10 +4,30 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * The Lexer class is responsible for tokenizing source code input. It scans the input characters
+ * and generates tokens based on predefined rules. Each token represents a lexical element of the
+ * source code, such as identifiers, literals, and keywords.
+ * <p>
+ * The Lexer recognizes various types of tokens, including integers, strings, characters,
+ * keywords, and punctuation symbols, among others.
+ */
 public class Lexer {
+
+    /** The source to be tokenized. */
     final Source s;
+    /**
+     * A mapping of reserved words to their corresponding token types.
+     * This map is used during tokenization to recognize keywords and special symbols.
+     */
     final Map<String, Type> rw;
 
+    /**
+     * Constructs a Lexer object with the provided source.
+     *
+     * @param s The source to be tokenized by the Lexer.
+     * @throws FileNotFoundException If the provided source file cannot be found.
+     */
     public Lexer(Source s) throws FileNotFoundException {
         this.s = s;
         rw = new HashMap<String, Type>();
@@ -61,7 +81,13 @@ public class Lexer {
         rw.put("<", Type.GREATER_THAN);
     }
 
-
+    /**
+     * Scans the input source and returns the next token encountered.
+     *
+     * @return The next token in the source code.
+     * @throws IOException    If an I/O error occurs while reading the source.
+     * @throws LexerException If a lexical error occurs during tokenization.
+     */
     public Token scan() throws IOException, LexerException {
         char c = s.next();
         Token t = new Token(s.ln, s.cn);
@@ -98,19 +124,42 @@ public class Lexer {
         return t;
     }
 
-
-    public static boolean r0_9(char match) {
+    /**
+     * Checks if the provided character is a digit (0-9).
+     *
+     * @param match The character to be checked.
+     * @return True if the character is a digit, otherwise false.
+     */
+    private static boolean r0_9(char match) {
         return match >= '0' && match <= '9';
     }
 
+    /**
+     * Checks if the provided character is a lowercase letter (a-z).
+     *
+     * @param c The character to be checked.
+     * @return True if the character is a lowercase letter, otherwise false.
+     */
     private boolean ra_z(char c) {
         return c >= 'a' && c <= 'z';
     }
 
+    /**
+     * Checks if the provided character is an uppercase letter (A-Z).
+     *
+     * @param match The character to be checked.
+     * @return True if the character is an uppercase letter, otherwise false.
+     */
     private boolean rA_Z(char match) {
         return match >= 'A' && match <= 'Z';
     }
 
+    /**
+     * Checks if the provided character is an escape character.
+     *
+     * @param match The character to be checked.
+     * @return True if the character is an escape character, otherwise false.
+     */
     private boolean escape(char match) {
         return switch (match) {
             case 'b', 'f', 'n', 'r', 't', 'v', '\'', '"', '\\' -> true;
@@ -118,6 +167,12 @@ public class Lexer {
         };
     }
 
+    /**
+     * Checks if the provided character is a valid character for the source code.
+     *
+     * @param match The character to be checked.
+     * @return True if the character is a valid character, otherwise false.
+     */
     private boolean alphabet(char match) {
         return switch (match) {
             case '#', '^', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_', '\\', '\'', '"' ->
@@ -126,6 +181,13 @@ public class Lexer {
         };
     }
 
+    /**
+     * Scans the input source and returns a token representing an integer literal.
+     *
+     * @param c The first character of the integer literal.
+     * @return A token representing the scanned integer literal.
+     * @throws IOException If an I/O error occurs while reading the source.
+     */
     private Token scanInt(char c) throws IOException {
         Token t = new Token(s.ln, s.cn);
         if (c != '0') {
@@ -139,6 +201,14 @@ public class Lexer {
         return t;
     }
 
+    /**
+     * Scans the input source and returns a token representing a struct identifier.
+     *
+     * @param c The first character of the struct identifier.
+     * @return A token representing the scanned struct identifier.
+     * @throws IOException    If an I/O error occurs while reading the source.
+     * @throws LexerException If a lexical error occurs during tokenization.
+     */
     private Token scanStructId(char c) throws IOException, LexerException {
         Token t = new Token(s.ln, s.cn);
         do {
@@ -155,6 +225,13 @@ public class Lexer {
         return t;
     }
 
+    /**
+     * Scans the input source and returns a token representing a member identifier.
+     *
+     * @param c The first character of the member identifier.
+     * @return A token representing the scanned member identifier.
+     * @throws IOException If an I/O error occurs while reading the source.
+     */
     private Token scanMemberId(char c) throws IOException {
         Token t = new Token(s.ln, s.cn);
         do {
@@ -166,6 +243,14 @@ public class Lexer {
         return t;
     }
 
+    /**
+     * Scans the input source and returns a token representing a character literal.
+     *
+     * @param c The first character of the character literal.
+     * @return A token representing the scanned character literal.
+     * @throws IOException    If an I/O error occurs while reading the source.
+     * @throws LexerException If a lexical error occurs during tokenization.
+     */
     private Token scanChar(char c) throws IOException, LexerException {
         Token t = new Token(s.ln, s.cn);
         int l = 0;
@@ -194,8 +279,8 @@ public class Lexer {
                 c = s.read();
             }
             if (l - 1 > 1) {
-                    t.setType(Type.BAD_CHAR_LITERAL);
-                    throw new LexerException(t, "Demasiados caracteres en literal de Char");
+                t.setType(Type.BAD_CHAR_LITERAL);
+                throw new LexerException(t, "Demasiados caracteres en literal de Char");
             }
         } while (c != '\'');
         t.append(c);
@@ -207,6 +292,14 @@ public class Lexer {
         return t;
     }
 
+    /**
+     * Scans the input source and returns a token representing a string literal.
+     *
+     * @param c The first character of the string literal.
+     * @return A token representing the scanned string literal.
+     * @throws IOException    If an I/O error occurs while reading the source.
+     * @throws LexerException If a lexical error occurs during tokenization.
+     */
     private Token scanStr(char c) throws IOException, LexerException {
         Token t = new Token(s.ln, s.cn);
         int l = 0;
