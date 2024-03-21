@@ -32,182 +32,72 @@ public class Lexer {
         rw.put("Bool", Type.TYPE);
         rw.put("nil", Type.NIL);
         rw.put("Array", Type.ARRAY);
+        rw.put(".", Type.DOT);
+        rw.put(":", Type.COLON);
+        rw.put(",", Type.COMMA);
+        rw.put(";", Type.SEMICOLON);
+        rw.put("(", Type.OPEN_PARENTHESIS);
+        rw.put(")", Type.CLOSE_PARENTHESIS);
+        rw.put("[", Type.OPEN_SQUARE_BRACKET);
+        rw.put("]", Type.CLOSE_SQUARE_BRACKET);
+        rw.put("{", Type.OPEN_CURLY_BRACKET);
+        rw.put("}", Type.CLOSE_CURLY_BRACKET);
+        rw.put("*", Type.MULTIPLICATION);
+        rw.put("%", Type.MODULO);
+        rw.put("/", Type.DIVISION);
+        rw.put("&&", Type.AND);
+        rw.put("||", Type.OR);
+        rw.put("+", Type.PLUS);
+        rw.put("-", Type.MINUS);
+        rw.put("--", Type.DECREMENT);
+        rw.put("->", Type.RETURN_TYPE);
+        rw.put("!", Type.NOT);
+        rw.put("!=", Type.NOT_EQUALS);
+        rw.put("=", Type.ASSIGNMENT);
+        rw.put("==", Type.EQUALS);
+        rw.put("<=", Type.LESS_THAN_OR_EQUALS);
+        rw.put(">=", Type.GRATER_THAN_OR_EQUALS);
+        rw.put(">", Type.GREATER_THAN);
+        rw.put("<", Type.GREATER_THAN);
     }
 
-    private char whitespace(char c) throws IOException {
-        while (Character.isISOControl(c) || Character.isWhitespace(c)) {
-            c = s.read();
-            if (c == '\uffff') throw new EOFException();
-        }
-        return comment(c);
-    }
-
-    private char comment(char c) throws IOException {
-        if (c == '/') {
-            c = s.read();
-            if (c == '?') {
-                do {
-                    c = s.read();
-                    if (c == '\uffff') throw new EOFException();
-                } while (c != '\n');
-                c = whitespace(c);
-            } else {
-                s.unread(c);
-                c = '/';
-            }
-        }
-        return c;
-    }
 
     public Token scan() throws IOException, LexerException {
-        char c = whitespace(s.read());
-        var t = new Token(s.ln, s.cn);
+        char c = s.next();
+        Token t = new Token(s.ln, s.cn);
         if (r0_9(c)) {
             t = scanInt(c);
         } else if (rA_Z(c)) {
             t = scanStructId(c);
+            t.setType(rw.getOrDefault(t.getLexeme(), Type.STRUCT_ID));
         } else if (ra_z(c)) {
             t = scanMemberId(c);
+            t.setType(rw.getOrDefault(t.getLexeme(), Type.MEMBER_ID));
         } else if (c == '\'') {
             t = scanChar(c);
         } else if (c == '"') {
             t = scanStr(c);
         } else {
             t.append(c);
-            switch (c) {
-                case '.':
-                    t.setType(Type.DOT);
-                    break;
-                case ':':
-                    t.setType(Type.COLON);
-                    break;
-                case ',':
-                    t.setType(Type.COMMA);
-                    break;
-                case ';':
-                    t.setType(Type.SEMICOLON);
-                    break;
-                case '(':
-                    t.setType(Type.OPEN_PARENTHESIS);
-                    break;
-                case ')':
-                    t.setType(Type.CLOSE_PARENTHESIS);
-                    break;
-                case '[':
-                    t.setType(Type.OPEN_SQUARE_BRACKET);
-                    break;
-                case ']':
-                    t.setType(Type.CLOSE_SQUARE_BRACKET);
-                    break;
-                case '{':
-                    t.setType(Type.OPEN_CURLY_BRACKET);
-                    break;
-                case '}':
-                    t.setType(Type.CLOSE_CURLY_BRACKET);
-                    break;
-                case '*':
-                    t.setType(Type.MULTIPLICATION);
-                    break;
-                case '%':
-                    t.setType(Type.MODULO);
-                    break;
-                case '\uffff':
-                    throw new EOFException();
-                case '/':
-                    t.setType(Type.DIVISION);
-                    break;
-                case '=':
-                    c = s.read();
-                    if (c == '=') {
-                        t.append(c);
-                        t.setType(Type.EQUALS);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.ASSIGNMENT);
-                    }
-                    break;
-                case '<':
-                    c = s.read();
-                    if (c == '=') {
-                        t.append(c);
-                        t.setType(Type.LESS_THAN_OR_EQUALS);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.LESS_THAN);
-                    }
-                    break;
-                case '>':
-                    c = s.read();
-                    if (c == '=') {
-                        t.append(c);
-                        t.setType(Type.GRATER_THAN_OR_EQUALS);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.GREATER_THAN);
-                    }
-                    break;
-                case '!':
-                    c = s.read();
-                    if (c == '=') {
-                        t.append(c);
-                        t.setType(Type.NOT_EQUALS);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.NOT);
-                    }
-                    break;
-                case '-':
-                    c = s.read();
-                    if (c == '>') {
-                        t.append(c);
-                        t.setType(Type.RETURN_TYPE);
-                    } else if (c == '-') {
-                        t.append(c);
-                        t.setType(Type.DECREMENT);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.MINUS);
-                    }
-                    break;
-                case '+':
-                    c = s.read();
-                    if (c == '+') {
-                        t.append(c);
-                        t.setType(Type.INCREMENT);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.PLUS);
-                    }
-                    break;
-                case '&':
-                    c = s.read();
-                    if (c == '&') {
-                        t.append(c);
-                        t.setType(Type.AND);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.BAD_TOKEN);
-                        throw new LexerException(t, "Caracter ilegal");
-                    }
-                    break;
-                case '|':
-                    c = s.read();
-                    if (c == '|') {
-                        t.append(c);
-                        t.setType(Type.OR);
-                    } else {
-                        s.unread(c);
-                        t.setType(Type.BAD_TOKEN);
-                        throw new LexerException(t, "Caracter ilegal");
-                    }
-                    break;
-                default:
+
+            var t2 = new Token(t.getLexeme(), s.ln, s.cn);
+            c = s.read();
+            t2.append(c);
+            if (rw.containsKey(t2.getLexeme())) {
+                t2.setType(rw.get(t2.getLexeme()));
+                t = t2;
+            } else {
+                s.unread(c);
+                if (rw.containsKey(t.getLexeme())) t.setType(rw.get(t.getLexeme()));
+                else {
                     t.setType(Type.BAD_TOKEN);
                     throw new LexerException(t, "Caracter ilegal");
+                }
             }
         }
         return t;
     }
+
 
     public static boolean r0_9(char match) {
         return match >= '0' && match <= '9';
@@ -230,7 +120,7 @@ public class Lexer {
 
     private boolean alphabet(char match) {
         return switch (match) {
-            case '#', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_', '\\', '\'', '"' ->
+            case '#', '^', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_', '\\', '\'', '"' ->
                     true;
             default -> r0_9(match) || ra_z(match) || rA_Z(match);
         };
@@ -259,7 +149,7 @@ public class Lexer {
         var lastChar = t.getLexeme().charAt(t.getLexeme().length() - 1);
         if (r0_9(lastChar) || lastChar == '_') {
             t.setType(Type.BAD_STRUCT_ID);
-            throw new LexerException(t, "Invalid struct identifier");
+            throw new LexerException(t, "Identificador de struct invalido");
         }
         t.setType(rw.getOrDefault(t.getLexeme(), Type.STRUCT_ID));
         return t;
@@ -278,32 +168,40 @@ public class Lexer {
 
     private Token scanChar(char c) throws IOException, LexerException {
         Token t = new Token(s.ln, s.cn);
-        boolean e;
-        boolean b = false;
         int l = 0;
         do {
+            l++;
             t.append(c);
-            e = c == '\\';
             c = s.read();
             if (c == '\n' || c == '\uffff') {
                 t.setType(Type.BAD_CHAR_LITERAL);
                 throw new LexerException(t, "Literal de Char sin cerrar");
             }
-            if (e && !escape(c)) {
+            if (!alphabet(c)) {
                 t.append(c);
                 t.setType(Type.BAD_CHAR_LITERAL);
-                throw new LexerException(t, "Caracter de escape ilegal literal de Char");
-            } else if (!alphabet(c)) b = true;
-            else l++;
-        } while ((e || c != '\''));
+                throw new LexerException(t, "Caracter ilegal en literal de Char");
+            }
+            if (c == '\\' && t.getLexeme().charAt(t.getLexeme().length() - 1) != '\\') {
+                t.append(c);
+                c = s.read();
+                t.append(c);
+                l++;
+                if (!escape(c)) {
+                    t.setType(Type.BAD_CHAR_LITERAL);
+                    throw new LexerException(t, "Caracter de escape ilegal en literal de Char");
+                }
+                c = s.read();
+            }
+            if (l - 1 > 1) {
+                    t.setType(Type.BAD_CHAR_LITERAL);
+                    throw new LexerException(t, "Demasiados caracteres en literal de Char");
+            }
+        } while (c != '\'');
         t.append(c);
-        if (l != 1) {
+        if (l - 1 == 0) {
             t.setType(Type.BAD_CHAR_LITERAL);
-            throw new LexerException(t, "Demasiados caracteres en literal de Char");
-        }
-        if (b) {
-            t.setType(Type.BAD_CHAR_LITERAL);
-            throw new LexerException(t, "Caracter ilegal literal de Char");
+            throw new LexerException(t, "Caracter nulo en literal de Char");
         }
         t.setType(Type.CHAR_LITERAL);
         return t;
@@ -311,32 +209,36 @@ public class Lexer {
 
     private Token scanStr(char c) throws IOException, LexerException {
         Token t = new Token(s.ln, s.cn);
-        boolean e;
-        boolean b = false;
         int l = 0;
         do {
             t.append(c);
-            e = c == '\\';
             c = s.read();
             if (c == '\n' || c == '\uffff') {
                 t.setType(Type.BAD_STR_LITERAL);
                 throw new LexerException(t, "Literal de Str sin cerrar");
             }
-            if (e && !escape(c)) {
+            if (!alphabet(c)) {
+                t.append(c);
                 t.setType(Type.BAD_STR_LITERAL);
-                throw new LexerException(t, "Caracter de escape ilegal literal de Str");
-            } else if (!alphabet(c)) b = true;
-            else l++;
-        } while (e || c != '"');
+                throw new LexerException(t, "Caracter ilegal en literal de Str");
+            }
+            if (c == '\\' && t.getLexeme().charAt(t.getLexeme().length() - 1) != '\\') {
+                t.append(c);
+                c = s.read();
+                t.append(c);
+                l++;
+                if (!escape(c)) {
+                    t.setType(Type.BAD_STR_LITERAL);
+                    throw new LexerException(t, "Caracter de escape ilegal en literal de Str");
+                }
+                c = s.read();
+            }
+            if (l - 1 > 1024) {
+                t.setType(Type.BAD_STR_LITERAL);
+                throw new LexerException(t, "Demasiados caracteres en literal de Str");
+            }
+        } while (c != '"');
         t.append(c);
-        if (l > 1024) {
-            t.setType(Type.BAD_STR_LITERAL);
-            throw new LexerException(t, "Demasiados caracteres en literal de Str");
-        }
-        if (b) {
-            t.setType(Type.BAD_CHAR_LITERAL);
-            throw new LexerException(t, "Caracter ilegal literal de Str");
-        }
         t.setType(Type.STR_LITERAL);
         return t;
     }
