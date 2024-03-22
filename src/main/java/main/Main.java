@@ -16,7 +16,7 @@ public class Main {
      */
     public static void main(String[] args) {
         // Setting a default filename for testing purposes
-        args[0] = "FIBONACCI_TEST.ru";
+//        args[0] = "FIBONACCI_TEST.ru";
         System.out.println("Inicio");
         try {
             System.out.println("Ejecutando analisis lexico...");

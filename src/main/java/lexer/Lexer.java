@@ -68,6 +68,7 @@ public class Lexer {
         rw.put("&&", Type.AND);
         rw.put("||", Type.OR);
         rw.put("+", Type.PLUS);
+        rw.put("++", Type.INCREMENT);
         rw.put("-", Type.MINUS);
         rw.put("--", Type.DECREMENT);
         rw.put("->", Type.RETURN_TYPE);
@@ -78,7 +79,7 @@ public class Lexer {
         rw.put("<=", Type.LESS_THAN_OR_EQUALS);
         rw.put(">=", Type.GRATER_THAN_OR_EQUALS);
         rw.put(">", Type.GREATER_THAN);
-        rw.put("<", Type.GREATER_THAN);
+        rw.put("<", Type.LESS_THAN);
     }
 
     /**
@@ -174,7 +175,7 @@ public class Lexer {
      */
     private boolean alphabet(char match) {
         return switch (match) {
-            case '#', '^', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_', '\\', '\'', '"' ->
+            case '#', '^', '$', '%', '&', '@', '¿', '¡', '!', '?', 'ñ', 'Ñ', '.', ':', ',', ';', '(', ')', '[', ']', '{', '}', '=', '+', '-', '*', '/', '|', '>', '<', ' ', '_', '\\', '\'', '"' ->
                     true;
             default -> r0_9(match) || ra_z(match) || rA_Z(match);
         };

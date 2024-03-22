@@ -15,4 +15,21 @@
         <maven.compiler.target>17</maven.compiler.target>
     </properties>
 
+    <!-- Add build configuration -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <!-- No se especifica la versión -->
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>main.Main</mainClass> <!-- Reemplaza com.example.MainClassName con el nombre completo de tu clase principal -->
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
