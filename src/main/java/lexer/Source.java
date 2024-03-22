@@ -60,26 +60,24 @@ public class Source {
      * @throws IOException If an I/O error occurs.
      */
     public char next() throws IOException {
-        char c;
-        do {
-            c = read();
-            if (c != '\uffff' && c != ' ' && (!Character.isISOControl(c) || !Character.isWhitespace(c))) {
-                if (c == '/') {
+        char c = read();
+        while (c != '\uffff') {
+            if (c == '/') {
+                c = read();
+                if (c == '?') {
                     c = read();
-                    if (c == '?') {
-                        do {
-                            c = read();
-                            if (c == '\n') break;
-                        } while (c != '\uffff');
-                    } else {
-                        unread(c);
-                        return '/';
+                    while (c != '\n' && c != '\uffff') {
+                        c = read();
                     }
                 } else {
-                    return c;
+                    unread(c);
+                    return '/';
                 }
+            } else if (!Character.isWhitespace(c)) {
+                return c;
             }
-        } while (c != '\uffff');
+            c = read();
+        }
         throw new EOFException();
     }
 }

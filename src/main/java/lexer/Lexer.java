@@ -105,7 +105,6 @@ public class Lexer {
             t = scanStr(c);
         } else {
             t.append(c);
-
             var t2 = new Token(t.getLexeme(), s.ln, s.cn);
             c = s.read();
             t2.append(c);

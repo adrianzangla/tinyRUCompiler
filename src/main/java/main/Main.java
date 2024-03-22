@@ -8,13 +8,15 @@ import java.io.FileNotFoundException;
  * Main class for executing the program.
  */
 public class Main {
+
     /**
      * Main method to start the program.
+     *
      * @param args Command-line arguments. The first argument should be the filename to execute.
      */
     public static void main(String[] args) {
         // Setting a default filename for testing purposes
-//        args[0] = "test.ru";
+        args[0] = "FIBONACCI_TEST.ru";
         System.out.println("Inicio");
         try {
             System.out.println("Ejecutando analisis lexico...");
@@ -26,3 +28,4 @@ public class Main {
         }
     }
 }
+
